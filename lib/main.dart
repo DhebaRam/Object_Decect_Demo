@@ -53,32 +53,132 @@
 // }
 
 import 'dart:async';
+import 'dart:developer';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_isolate/flutter_isolate.dart';
 import 'home.dart';
+import 'dart:isolate';
 
-List<CameraDescription>? cameras;
+import 'local_notification.dart';
 
-Future<Null> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    cameras = await availableCameras();
-  } on CameraException catch (e) {
-    print('Error: $e.code\nError Message: $e.message');
-  }
-  runApp(new MyApp());
+  runApp(MyApp());
+
+  AwesomeNotifications().initialize(null, [
+    NotificationChannel(
+        channelGroupKey: 'reminders',
+        channelKey: 'instant_notification',
+        channelName: 'Basic Instant Notification',
+        channelDescription: 'Testing Notification')
+  ]);
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'tflite real-time detection',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-      ),
-      home: HomePage(cameras),
+      title: 'Isolate Demo',
+      home: IsolateDemo(),
     );
   }
 }
+
+class IsolateDemo extends StatefulWidget {
+  @override
+  IsolateDemoState createState() => IsolateDemoState();
+}
+
+class IsolateDemoState extends State<IsolateDemo> {
+  int _counter = 0;
+
+  // Method to increment the counter in a separate isolate
+  Future<void> _incrementCounter() async {
+    ReceivePort receivePort = ReceivePort();
+    Isolate isolate =
+        await Isolate.spawn(_isolateEntryPoint, receivePort.sendPort);
+
+    receivePort.listen((data) {
+      log("data listen---> $data");
+      // ScaffoldMessenger.of(context).showSnackBar( SnackBar(
+      //   content: Text('Hello, Snack bar! ${data}'),
+      // ));
+      setState(() {
+        _counter = data;
+      });
+
+    });
+  }
+
+  // Entry point for the isolate
+  static void _isolateEntryPoint(SendPort sendPort) {
+    int counter = 0;
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      counter++;
+      sendPort.send(counter);
+      Notify.instanceNotify(counter);
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Isolate Demo'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text(
+              'Counter:',
+            ),
+            Text(
+              '$_counter',
+              style: Theme.of(context).textTheme.headline4,
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// Object Detect Demo
+// List<CameraDescription>? cameras;
+// void  main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   try {
+//     cameras = await availableCameras();
+//   } on CameraException catch (e) {
+//     print('Error: $e.code\nError Message: $e.message');
+//   }
+//   runApp(new MyApp());
+// }
+
+// class MyApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'tflite real-time detection',
+//       debugShowCheckedModeBanner: false,
+//       theme: ThemeData(
+//         brightness: Brightness.dark,
+//       ),
+//       home: HomePage(cameras),
+//     );
+//   }
+// }

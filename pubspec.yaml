@@ -38,6 +38,9 @@ dependencies:
   face_camera: ^0.0.9
   tflite: ^1.1.2
   camera: ^0.10.5+9
+  flutter_isolate: ^2.0.4
+  awesome_notifications: ^0.9.2
+
 
 dev_dependencies:
   flutter_test:
